@@ -49,6 +49,66 @@
 
     .intro p { margin: 0 0 1rem; }
 
+    .questions {
+      max-width: 720px;
+      margin: 0 auto 2.75rem;
+      padding: 1.25rem;
+      border: 1px solid #d7d7d7;
+      border-radius: 12px;
+    }
+
+    .questions h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    .questions p {
+      margin: 0 0 1rem;
+      line-height: 1.5;
+    }
+
+    .question-form {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .question-form label {
+      font-weight: 700;
+    }
+
+    .question-form input,
+    .question-form textarea {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #a9a9a9;
+      border-radius: 6px;
+      font: inherit;
+    }
+
+    .question-form textarea {
+      min-height: 8rem;
+      resize: vertical;
+    }
+
+    .question-form button {
+      justify-self: start;
+      padding: 0.7rem 1rem;
+      border: 0;
+      border-radius: 6px;
+      color: #fff;
+      background: #075dc2;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .question-form .form-note {
+      margin: 0;
+      color: #4b4b4b;
+      font-size: 0.9rem;
+    }
+
     .available {
       margin: 2rem 0;
       padding: 1.25rem;
@@ -113,6 +173,21 @@
     <section class="intro">
       <p>Pour essayer une application, cliquez sur son lien : elle s’ouvrira directement dans votre navigateur, sans téléchargement ni installation. Les données que vous saisissez restent enregistrées sur votre appareil et ne sont pas transférées.</p>
       <p>Utilisez de préférence Chrome. Si vous avez des difficultés à comprendre le mode d’emploi, posez-moi vos questions !</p>
+    </section>
+
+    <section class="questions" aria-labelledby="question-title">
+      <h2 id="question-title">Une question ?</h2>
+      <p>Écrivez votre question ci-dessous. Vous pouvez laisser votre adresse e-mail si vous souhaitez recevoir une réponse.</p>
+      <form class="question-form" action="https://formspree.io/f/xzedjljl" method="POST">
+        <label for="visitor-email">Votre adresse e-mail <span>(facultatif)</span></label>
+        <input id="visitor-email" name="email" type="email" autocomplete="email">
+
+        <label for="visitor-question">Votre question</label>
+        <textarea id="visitor-question" name="question" required></textarea>
+
+        <button type="submit">Envoyer</button>
+        <p class="form-note">En envoyant ce formulaire, votre question et, si vous l’indiquez, votre adresse e-mail sont transmis à Formspree afin de nous être acheminés.</p>
+      </form>
     </section>
 
     <section class="available" aria-labelledby="available-title">
