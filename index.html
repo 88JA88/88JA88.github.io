@@ -5,35 +5,162 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JA-Applications</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
+    :root {
+      color: #1d1d1f;
+      background: #fff;
       font-family: Arial, sans-serif;
     }
-    main {
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; }
+
+    .site-header {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
+      justify-content: center;
+      padding: 1.25rem 1.5rem 0.75rem;
     }
-    img {
+
+    .site-header img {
       display: block;
-      width: min(236px, 70vw);
+      width: 64px;
       height: auto;
     }
+
+    main {
+      width: min(100% - 2.5rem, 860px);
+      margin: 0 auto 4rem;
+    }
+
     h1 {
+      margin: 0.75rem 0 2rem;
+      text-align: center;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+    }
+
+    .intro {
+      max-width: 720px;
+      margin: 0 auto 2.75rem;
+      line-height: 1.55;
+    }
+
+    .intro p { margin: 0 0 1rem; }
+
+    .available {
+      margin: 2rem 0;
+      padding: 1.25rem;
+      border-radius: 12px;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      margin: 2.75rem 0 1rem;
+      font-size: 1.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    .available h2 { margin-top: 0; }
+
+    .apps {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    }
+
+    .app {
+      padding: 1.1rem;
+      border: 1px solid #d7d7d7;
+      border-radius: 10px;
+    }
+
+    .app h3 {
+      margin: 0 0 0.6rem;
+      font-size: 1.1rem;
+    }
+
+    .app p {
       margin: 0;
-      font-size: clamp(1.5rem, 4vw, 2rem);
+      line-height: 1.5;
+    }
+
+    a {
+      color: #075dc2;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.18em;
+    }
+
+    @media (max-width: 480px) {
+      main { width: min(100% - 2rem, 860px); }
+      .site-header { padding-top: 1rem; }
+      .site-header img { width: 54px; }
     }
   </style>
 </head>
 <body>
-  <main>
+  <header class="site-header">
     <img src="assets/logo.png" alt="Logo JA-Applications">
+  </header>
+
+  <main>
     <h1>JA-Applications</h1>
+
+    <section class="intro">
+      <p>Pour essayer une application, cliquez sur son lien : elle s’ouvrira directement dans votre navigateur, sans téléchargement ni installation. Les données que vous saisissez restent enregistrées sur votre appareil et ne sont pas transférées.</p>
+      <p>Utilisez de préférence Chrome. Si vous avez des difficultés à comprendre le mode d’emploi, posez-moi vos questions !</p>
+    </section>
+
+    <section class="available" aria-labelledby="available-title">
+      <h2 id="available-title">Aujourd’hui, je propose</h2>
+      <div class="apps">
+        <article class="app">
+          <h3><a href="https://88ja88.github.io/flibuste-en-mer-des-caraibes/">Flibuste en mer des Caraïbes !</a></h3>
+          <p>Surcouf doit prendre des trésors et les rapporter à son port, tandis que Barbe-Noire cherche à l’en empêcher.</p>
+        </article>
+        <article class="app">
+          <h3><a href="https://88ja88.github.io/PUZZLE/">puZZle</a></h3>
+          <p>Choisissez une image ou une photo, paramétrez la grille et la difficulté, puis créez et placez les pièces de votre puzzle.</p>
+        </article>
+      </div>
+    </section>
+
+    <p class="intro">Pour vous donner une idée, il y aura :</p>
+
+    <section aria-labelledby="useful-title">
+      <h2 id="useful-title">Pour être utile</h2>
+      <div class="apps">
+        <article class="app"><h3>Allo…</h3><p>Carnet des personnes que l’on appelle souvent. Appel facilité pour les personnes âgées par exemple.</p></article>
+        <article class="app"><h3>Retrouve-moi</h3><p>Créer et imprimer une étiquette avec un QR code pour qu’une personne qui trouve un objet perdu puisse contacter son propriétaire.</p></article>
+        <article class="app"><h3>Remplis ton panier</h3><p>Établir une liste de courses et s’en servir dans les magasins.</p></article>
+      </div>
+    </section>
+
+    <section aria-labelledby="work-title">
+      <h2 id="work-title">Plus professionnel</h2>
+      <div class="apps">
+        <article class="app"><h3>JA — Réseau PERT</h3><p>Organiser un projet, calculer les dates et les marges, repérer le chemin critique, calculer les coûts et lisser les charges.</p></article>
+        <article class="app"><h3>Stratégies (théorie des jeux)</h3><p>Comparer les espérances de gains selon les choix stratégiques de chacun et aider à la décision.</p></article>
+        <article class="app"><h3>Ma tournée</h3><p>Organiser la journée de son équipe, par exemple d’un groupe d’infirmières en plaçant leurs interventions auprès des patients dans les créneaux disponibles.</p></article>
+        <article class="app"><h3>ScanFac</h3><p>Saisir et classer des frais professionnels, suivre les totaux et les exporter en CSV pour les imprimer ou les transmettre.</p></article>
+      </div>
+    </section>
+
+    <section aria-labelledby="think-title">
+      <h2 id="think-title">Pour réfléchir</h2>
+      <div class="apps">
+        <article class="app"><h3>Mot à Mot</h3><p>Former des mots sur une grille en respectant les règles de placement afin de la remplir avant l’adversaire.</p></article>
+        <article class="app"><h3>Nombres chanceux</h3><p>Compléter sa grille avec des nombres rangés dans l’ordre croissant ; le premier joueur qui la remplit gagne.</p></article>
+        <article class="app"><h3>puZZle</h3><p>Choisir une image, une photo personnelle, le nombre de pièces et la difficulté, puis créer le puzzle et placer les pièces.</p></article>
+      </div>
+    </section>
+
+    <section aria-labelledby="games-title">
+      <h2 id="games-title">Les jeux</h2>
+      <div class="apps">
+        <article class="app"><h3>Flibuste en mer des Caraïbes</h3><p>Surcouf doit prendre des trésors et les rapporter à son port, tandis que Barbe-Noire cherche à l’en empêcher.</p></article>
+        <article class="app"><h3>Romains et Barbares</h3><p>Deux camps étendent leurs réseaux de positions pour conquérir des capitales et défendre leur territoire.</p></article>
+        <article class="app"><h3>Intergalactique</h3><p>Deux réseaux spatiaux s’affrontent pour conquérir le Centre galactique adverse.</p></article>
+      </div>
+    </section>
   </main>
 </body>
 </html>
