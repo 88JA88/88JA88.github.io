@@ -17,8 +17,9 @@
 
     .site-header {
       display: flex;
-      justify-content: center;
-      padding: 1.25rem 1.5rem 0.75rem;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.25rem 1.5rem 1.5rem;
     }
 
     .site-header img {
@@ -32,10 +33,10 @@
       margin: 0 auto 4rem;
     }
 
-    h1 {
-      margin: 0.75rem 0 2rem;
+    .site-header h1 {
+      margin: 0.5rem 0 0;
       text-align: center;
-      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-size: clamp(1.25rem, 3vw, 1.65rem);
     }
 
     .intro {
@@ -99,11 +100,10 @@
 <body>
   <header class="site-header">
     <img src="assets/logo.png" alt="Logo JA-Applications">
+    <h1>JA-Applications</h1>
   </header>
 
   <main>
-    <h1>JA-Applications</h1>
-
     <section class="intro">
       <p>Pour essayer une application, cliquez sur son lien : elle s’ouvrira directement dans votre navigateur, sans téléchargement ni installation. Les données que vous saisissez restent enregistrées sur votre appareil et ne sont pas transférées.</p>
       <p>Utilisez de préférence Chrome. Si vous avez des difficultés à comprendre le mode d’emploi, posez-moi vos questions !</p>
