@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon pouls — diagnostic technique</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#172235;background:#f4f7fa}body{max-width:40rem;margin:auto;padding:1.25rem;line-height:1.5}h1{font-size:1.65rem}section{background:white;border-radius:1rem;padding:1rem;margin:1rem 0}button{background:#174f85;color:white;border:0;border-radius:.7rem;padding:.9rem 1.1rem;font:inherit;margin:.25rem .25rem .25rem 0}button:disabled{opacity:.5}video{display:block;width:100%;max-height:18rem;background:#152336;border-radius:.6rem}li{margin:.65rem 0}small{color:#526173}code{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<h1>Mon pouls</h1>
+<p>Diagnostic technique : caméra, flash et lecture des images. Ce test ne mesure pas le pouls.</p>
+<section>
+<p>Ouvrez cette page en HTTPS dans Safari sur l’iPhone. Autorisez la caméra, puis vérifiez l’aperçu et le flash à l’arrière du téléphone.</p>
+<button id="start">Démarrer le test</button><button id="torch" disabled>Tester le flash</button><button id="stop" disabled>Arrêter</button>
+<video id="video" autoplay playsinline muted></video>
+</section>
+<section aria-live="polite"><h2>Résultats</h2><ul>
+<li id="secure">Connexion : en attente.</li><li id="camera">Caméra arrière : en attente.</li><li id="frames">Lecture des images : en attente.</li><li id="flash">Flash : en attente.</li>
+</ul><p id="brightness"></p></section>
+<small>Les images restent dans cette page ; aucune image n’est enregistrée ni envoyée. Le diagnostic ne vérifie pas la fiabilité d’une mesure cardiaque.</small>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const video = $('video'), canvas = document.createElement('canvas');
+canvas.width = 32; canvas.height = 32;
+const ctx = canvas.getContext('2d', {willReadFrequently:true});
+let stream = null, track = null, timer = null, generation = 0, busy = false;
+$('secure').textContent = window.isSecureContext ? 'Connexion : contexte sécurisé.' : 'Connexion : contexte non sécurisé. Utilisez une adresse HTTPS.';
+function stop() {
+  generation++;
+  clearInterval(timer); timer = null;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; track = null; video.srcObject = null;
+  $('start').disabled = busy; $('stop').disabled = true; $('torch').disabled = true;
+}
+$('start').addEventListener('click', async () => {
+  if (busy) return;
+  stop(); busy = true; $('start').disabled = true;
+  const attempt = generation;
+  $('camera').textContent = 'Caméra arrière : demande d’accès en cours.';
+  $('frames').textContent = 'Lecture des images : en attente.';
+  $('flash').textContent = 'Flash : en attente.'; $('brightness').textContent = '';
+  try {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Accès indisponible : ouvrez la page en HTTPS et vérifiez les autorisations du navigateur.');
+    const opened = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{exact:'environment'}}});
+    if (generation !== attempt || document.hidden) { opened.getTracks().forEach(t => t.stop()); return; }
+    stream = opened; track = stream.getVideoTracks()[0];
+    video.srcObject = stream; await video.play();
+    if (generation !== attempt) return;
+    const facing = track.getSettings?.().facingMode;
+    $('camera').textContent = facing === 'environment' ? 'Caméra arrière : sélectionnée. Vérifiez l’aperçu.' : 'Caméra : flux obtenu avec demande de caméra arrière. Vérifiez l’aperçu ; orientation non confirmée par le navigateur.';
+    $('stop').disabled = false;
+    const caps = track.getCapabilities ? track.getCapabilities() : null;
+    const torch = caps?.torch;
+    if (torch === true || (Array.isArray(torch) && torch.includes(true))) {
+      $('flash').textContent = 'Flash : capacité annoncée. Appuyez sur « Tester le flash » et vérifiez visuellement.';
+      $('torch').disabled = false;
+    } else {
+      $('flash').textContent = 'Flash : capacité non annoncée pour cette caméra. Activation non disponible ou impossible à vérifier dans ce navigateur.';
+    }
+    let successes = 0;
+    timer = setInterval(() => {
+      try {
+        if (video.readyState < 2 || !video.videoWidth) return;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let sum = 0; for (let i = 0; i < pixels.length; i += 4) sum += (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
+        successes++;
+        $('frames').textContent = 'Lecture des images : pixels accessibles par JavaScript (' + successes + ' lectures). Vérifiez que l’aperçu change quand vous déplacez le téléphone.';
+        $('brightness').textContent = 'Luminosité moyenne indicative : ' + Math.round(sum / (pixels.length / 4)) + ' / 255.';
+      } catch (error) { clearInterval(timer); $('frames').textContent = 'Lecture des images impossible : ' + error.name; }
+    }, 500);
+  } catch (error) {
+    if (generation === attempt) { stop(); $('camera').textContent = 'Caméra arrière indisponible : ' + (error.message || error.name) + '. Vérifiez HTTPS, les autorisations et les autres applications utilisant la caméra.'; }
+  } finally { busy = false; $('start').disabled = false; }
+});
+$('torch').addEventListener('click', async () => {
+  if (!track) return;
+  const current = track; $('torch').disabled = true;
+  try {
+    await current.applyConstraints({advanced:[{torch:true}]});
+    if (track === current) $('flash').textContent = 'Commande du flash acceptée. Vérifiez visuellement si la lumière arrière est allumée : l’acceptation seule ne le garantit pas.';
+  } catch (error) { if (track === current) $('flash').textContent = 'Activation du flash refusée ou impossible : ' + error.name + '.'; }
+});
+$('stop').addEventListener('click', stop);
+document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+window.addEventListener('pagehide', stop);
+</script>
+</body>
+</html>
