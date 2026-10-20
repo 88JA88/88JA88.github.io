@@ -1,92 +1,36 @@
 <!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mon pouls — diagnostic technique</title>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mon pouls</title>
 <style>
-:root{font-family:system-ui,sans-serif;color:#172235;background:#f4f7fa}body{max-width:40rem;margin:auto;padding:1.25rem;line-height:1.5}h1{font-size:1.65rem}section{background:white;border-radius:1rem;padding:1rem;margin:1rem 0}button{background:#174f85;color:white;border:0;border-radius:.7rem;padding:.9rem 1.1rem;font:inherit;margin:.25rem .25rem .25rem 0}button:disabled{opacity:.5}video{display:block;width:100%;max-height:18rem;background:#152336;border-radius:.6rem}li{margin:.65rem 0}small{color:#526173}code{overflow-wrap:anywhere}
-</style>
-</head>
-<body>
-<h1>Mon pouls</h1>
-<p>Diagnostic technique : caméra, flash et lecture des images. Ce test ne mesure pas le pouls.</p>
-<section>
-<p>Ouvrez cette page en HTTPS dans Safari sur l’iPhone. Autorisez la caméra, puis vérifiez l’aperçu et le flash à l’arrière du téléphone.</p>
-<button id="start">Démarrer le test</button><button id="torch" disabled>Tester le flash</button><button id="stop" disabled>Arrêter</button>
-<video id="video" autoplay playsinline muted></video>
-</section>
-<section aria-live="polite"><h2>Résultats</h2><ul>
-<li id="secure">Connexion : en attente.</li><li id="camera">Caméra arrière : en attente.</li><li id="frames">Lecture des images : en attente.</li><li id="flash">Flash : en attente.</li>
-</ul><p id="brightness"></p></section>
-<small>Les images restent dans cette page ; aucune image n’est enregistrée ni envoyée. Le diagnostic ne vérifie pas la fiabilité d’une mesure cardiaque.</small>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#15243a;background:#f4f7fb}*{box-sizing:border-box}body{max-width:38rem;margin:auto;padding:1.1rem;line-height:1.45}h1{font-size:1.65rem;margin:.2rem 0}h2{font-size:1.05rem;margin:.1rem 0 .6rem}.lead{margin:.3rem 0 1.1rem;color:#46566a}section{background:#fff;border-radius:1rem;padding:1rem;margin:.9rem 0;box-shadow:0 1px 3px #12233a12}button{background:#14578f;color:#fff;border:0;border-radius:.7rem;padding:.85rem 1rem;font:inherit;font-weight:650;margin:.2rem .3rem .2rem 0}button.secondary{background:#e8eef5;color:#183652}button:disabled{opacity:.55}video{display:block;width:100%;max-height:15rem;background:#142335;border-radius:.7rem;object-fit:cover}.metric{display:flex;align-items:baseline;gap:.55rem}.bpm{font-size:3.1rem;font-weight:750;letter-spacing:-.08em;line-height:1}.unit{font-weight:650;color:#536578}.hidden{display:none}.state{color:#40536a;margin:.55rem 0 0}.warning{color:#a04310}.good{color:#17643c}.quality{height:.7rem;background:#e7edf4;border-radius:1rem;overflow:hidden;margin:.65rem 0 .25rem}.quality>div{height:100%;width:0;background:#c27d1b;border-radius:1rem;transition:width .25s,background .25s}.facts{padding-left:1.15rem;margin:.5rem 0}.facts li{margin:.35rem 0}small{color:#56667a;display:block;margin:1.15rem .25rem}canvas{width:100%;height:4rem;background:#f7f9fc;border-radius:.5rem;margin-top:.8rem}
+</style></head><body>
+<h1>Mon pouls</h1><p class="lead">Mesure indicative par caméra. Placez doucement un doigt sur l’objectif arrière et le flash.</p>
+<section><button id="start">Démarrer la mesure</button><button id="stop" class="secondary" disabled>Arrêter</button><video id="video" autoplay playsinline muted></video><p id="camera" class="state">La caméra est arrêtée.</p></section>
+<section aria-live="polite"><h2>Résultat</h2><div id="result" class="metric hidden"><span id="bpm" class="bpm">--</span><span class="unit">BPM</span></div><p id="resultHint" class="state">La fréquence cardiaque s’affichera lorsque le signal sera suffisamment régulier.</p><div class="quality"><div id="qualityBar"></div></div><p id="qualityText" class="state">Qualité du signal : en attente.</p><canvas id="graph" width="600" height="100" aria-label="Signal lumineux observé"></canvas></section>
+<section><h2>Conseils</h2><ul class="facts"><li>Recouvrez complètement l’objectif et le flash sans appuyer fort.</li><li>Restez immobile pendant environ 15 secondes.</li><li>La mesure est indicative et ne constitue pas un diagnostic médical.</li></ul></section>
+<small>Les images sont analysées uniquement dans votre navigateur : aucune image, mesure ou donnée personnelle n’est enregistrée ni transmise.</small>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const video = $('video'), canvas = document.createElement('canvas');
-canvas.width = 32; canvas.height = 32;
-const ctx = canvas.getContext('2d', {willReadFrequently:true});
-let stream = null, track = null, timer = null, generation = 0, busy = false;
-$('secure').textContent = window.isSecureContext ? 'Connexion : contexte sécurisé.' : 'Connexion : contexte non sécurisé. Utilisez une adresse HTTPS.';
-function stop() {
-  generation++;
-  clearInterval(timer); timer = null;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null; track = null; video.srcObject = null;
-  $('start').disabled = busy; $('stop').disabled = true; $('torch').disabled = true;
+const $=id=>document.getElementById(id),video=$('video'),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true}),graph=$('graph'),gctx=graph.getContext('2d');canvas.width=48;canvas.height=48;
+let stream,track,timer,samples=[],running=false,lastAnalysis=0;
+function setQuality(score,text,kind=''){const bar=$('qualityBar');bar.style.width=`${Math.round(score*100)}%`;bar.style.background=score>.75?'#1d8850':score>.45?'#c27d1b':'#b44d38';$('qualityText').textContent=`Qualité du signal : ${text}`;$('qualityText').className=`state ${kind}`;}
+function clearResult(hint){$('result').classList.add('hidden');$('resultHint').textContent=hint;}
+function stop(){running=false;clearInterval(timer);timer=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;track=null;video.srcObject=null;$('start').disabled=false;$('stop').disabled=true;$('camera').textContent='La caméra est arrêtée.';setQuality(0,'en attente.');clearResult('La fréquence cardiaque s’affichera lorsque le signal sera suffisamment régulier.');draw([]);}
+function median(v){const a=[...v].sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:0;}function deviation(v){if(!v.length)return 0;const m=v.reduce((a,b)=>a+b,0)/v.length;return Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/v.length);}
+function draw(values){const w=graph.width,h=graph.height;gctx.clearRect(0,0,w,h);gctx.fillStyle='#f7f9fc';gctx.fillRect(0,0,w,h);gctx.strokeStyle='#dce5ee';gctx.beginPath();gctx.moveTo(0,h/2);gctx.lineTo(w,h/2);gctx.stroke();if(values.length<2)return;const min=Math.min(...values),max=Math.max(...values),range=Math.max(.0001,max-min);gctx.strokeStyle='#c73846';gctx.lineWidth=2;gctx.beginPath();values.forEach((v,i)=>{const x=i*w/(values.length-1),y=h-8-(v-min)*(h-16)/range;i?gctx.lineTo(x,y):gctx.moveTo(x,y)});gctx.stroke();}
+function analyze(){
+ const now=performance.now(),recent=samples.filter(x=>now-x.t<15000);if(recent.length<170){clearResult('Gardez le doigt immobile : analyse en cours…');setQuality(Math.min(.35,recent.length/500),'analyse en cours.');return;}
+ const values=recent.map(x=>x.v),brightness=recent.map(x=>x.r),uniformity=recent.map(x=>x.u),meanR=brightness.reduce((a,b)=>a+b,0)/brightness.length,meanU=uniformity.reduce((a,b)=>a+b,0)/uniformity.length;
+ if(meanR<110||meanR>252||meanU>.32){clearResult('Signal insuffisant : recouvrez mieux l’objectif et le flash.');setQuality(.12,'doigt mal positionné ou lumière insuffisante.','warning');draw(values.slice(-220));return;}
+ const rate=recent.length/((recent.at(-1).t-recent[0].t)/1000);if(rate<15){clearResult('Signal insuffisant : la caméra fournit trop peu d’images.');setQuality(.15,'lecture vidéo trop lente.','warning');return;}
+ const win=Math.max(10,Math.round(rate*1.2)),filtered=values.map((v,i)=>{const from=Math.max(0,i-win),base=values.slice(from,i+1).reduce((a,b)=>a+b,0)/(i-from+1);return v-base}),sd=deviation(filtered),motion=deviation(values.map((v,i)=>i?v-values[i-1]:0));draw(filtered.slice(-220));
+ if(sd<.0012||motion>.02){clearResult(motion>.02?'Mouvement détecté : restez immobile.':'Signal trop faible : ajustez votre doigt.');setQuality(Math.min(.35,sd*80),motion>.02?'mouvements perturbants.':'variations lumineuses trop faibles.','warning');return;}
+ const threshold=sd*.28,peaks=[],minGap=1000/190;for(let i=2;i<filtered.length-2;i++)if(filtered[i]>threshold&&filtered[i]>filtered[i-1]&&filtered[i]>=filtered[i+1]){const t=recent[i].t;if(!peaks.length||t-peaks.at(-1).t>minGap)peaks.push({t,v:filtered[i]});else if(filtered[i]>peaks.at(-1).v)peaks[peaks.length-1]={t,v:filtered[i]};}
+ const intervals=[];for(let i=1;i<peaks.length;i++){const d=peaks[i].t-peaks[i-1].t;if(d>330&&d<1500)intervals.push(d);}if(intervals.length<6){clearResult('Analyse en cours : maintenez le doigt immobile.');setQuality(.42,'battements pas encore assez réguliers.');return;}
+ const last=intervals.slice(-8),med=median(last),bpm=60000/med,cv=deviation(last)/(last.reduce((a,b)=>a+b,0)/last.length),quality=Math.max(0,Math.min(1,.94-cv*3.4-Math.max(0,motion-.008)*20));
+ if(bpm<40||bpm>180||cv>.13||quality<.72){clearResult(cv>.13?'Signal irrégulier : restez immobile et ajustez le doigt.':'Signal insuffisant : continuez la mesure.');setQuality(quality,cv>.13?'rythme lumineux irrégulier.':'en cours de stabilisation.','warning');return;}
+ $('bpm').textContent=Math.round(bpm);$('result').classList.remove('hidden');$('resultHint').textContent='Mesure indicative, basée sur les derniers battements détectés.';setQuality(quality,'bonne.','good');
 }
-$('start').addEventListener('click', async () => {
-  if (busy) return;
-  stop(); busy = true; $('start').disabled = true;
-  const attempt = generation;
-  $('camera').textContent = 'Caméra arrière : demande d’accès en cours.';
-  $('frames').textContent = 'Lecture des images : en attente.';
-  $('flash').textContent = 'Flash : en attente.'; $('brightness').textContent = '';
-  try {
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Accès indisponible : ouvrez la page en HTTPS et vérifiez les autorisations du navigateur.');
-    const opened = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{exact:'environment'}}});
-    if (generation !== attempt || document.hidden) { opened.getTracks().forEach(t => t.stop()); return; }
-    stream = opened; track = stream.getVideoTracks()[0];
-    video.srcObject = stream; await video.play();
-    if (generation !== attempt) return;
-    const facing = track.getSettings?.().facingMode;
-    $('camera').textContent = facing === 'environment' ? 'Caméra arrière : sélectionnée. Vérifiez l’aperçu.' : 'Caméra : flux obtenu avec demande de caméra arrière. Vérifiez l’aperçu ; orientation non confirmée par le navigateur.';
-    $('stop').disabled = false;
-    const caps = track.getCapabilities ? track.getCapabilities() : null;
-    const torch = caps?.torch;
-    if (torch === true || (Array.isArray(torch) && torch.includes(true))) {
-      $('flash').textContent = 'Flash : capacité annoncée. Appuyez sur « Tester le flash » et vérifiez visuellement.';
-      $('torch').disabled = false;
-    } else {
-      $('flash').textContent = 'Flash : capacité non annoncée pour cette caméra. Activation non disponible ou impossible à vérifier dans ce navigateur.';
-    }
-    let successes = 0;
-    timer = setInterval(() => {
-      try {
-        if (video.readyState < 2 || !video.videoWidth) return;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let sum = 0; for (let i = 0; i < pixels.length; i += 4) sum += (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
-        successes++;
-        $('frames').textContent = 'Lecture des images : pixels accessibles par JavaScript (' + successes + ' lectures). Vérifiez que l’aperçu change quand vous déplacez le téléphone.';
-        $('brightness').textContent = 'Luminosité moyenne indicative : ' + Math.round(sum / (pixels.length / 4)) + ' / 255.';
-      } catch (error) { clearInterval(timer); $('frames').textContent = 'Lecture des images impossible : ' + error.name; }
-    }, 500);
-  } catch (error) {
-    if (generation === attempt) { stop(); $('camera').textContent = 'Caméra arrière indisponible : ' + (error.message || error.name) + '. Vérifiez HTTPS, les autorisations et les autres applications utilisant la caméra.'; }
-  } finally { busy = false; $('start').disabled = false; }
-});
-$('torch').addEventListener('click', async () => {
-  if (!track) return;
-  const current = track; $('torch').disabled = true;
-  try {
-    await current.applyConstraints({advanced:[{torch:true}]});
-    if (track === current) $('flash').textContent = 'Commande du flash acceptée. Vérifiez visuellement si la lumière arrière est allumée : l’acceptation seule ne le garantit pas.';
-  } catch (error) { if (track === current) $('flash').textContent = 'Activation du flash refusée ou impossible : ' + error.name + '.'; }
-});
-$('stop').addEventListener('click', stop);
-document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
-window.addEventListener('pagehide', stop);
-</script>
-</body>
-</html>
+function sample(){if(!running||video.readyState<2||!video.videoWidth)return;try{ctx.drawImage(video,0,0,canvas.width,canvas.height);const p=ctx.getImageData(0,0,canvas.width,canvas.height).data;let r=0,g=0,b=0,l2=0,n=p.length/4;for(let i=0;i<p.length;i+=4){r+=p[i];g+=p[i+1];b+=p[i+2];l2+=((p[i]+p[i+1]+p[i+2])/3)**2;}r/=n;g/=n;b/=n;const lum=(r+g+b)/3,variance=Math.max(0,l2/n-lum**2);samples.push({t:performance.now(),v:r/(r+g+b+1),r,u:Math.sqrt(variance)/(lum+1)});const cutoff=performance.now()-16000;samples=samples.filter(x=>x.t>cutoff);if(performance.now()-lastAnalysis>900){lastAnalysis=performance.now();analyze();}}catch(e){clearResult('Impossible de lire les images.');setQuality(0,'lecture vidéo indisponible.','warning');}}
+$('start').addEventListener('click',async()=>{try{$('start').disabled=true;clearResult('Autorisez la caméra puis recouvrez l’objectif avec votre doigt.');$('camera').textContent='Ouverture de la caméra arrière…';stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,min:15}}});track=stream.getVideoTracks()[0];video.srcObject=stream;await video.play();const caps=track.getCapabilities?.();if(caps?.torch===true||(Array.isArray(caps?.torch)&&caps.torch.includes(true)))try{await track.applyConstraints({advanced:[{torch:true}]});}catch(e){}samples=[];running=true;lastAnalysis=0;$('stop').disabled=false;$('camera').textContent='Caméra et flash actifs. Gardez votre doigt sur l’objectif.';timer=setInterval(sample,33);}catch(e){$('camera').textContent=`Caméra indisponible : ${e.name||e.message}. Vérifiez les autorisations Safari.`;$('start').disabled=false;}});
+$('stop').addEventListener('click',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',stop);
+</script></body></html>
