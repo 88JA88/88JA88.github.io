@@ -3,7 +3,7 @@
   "short_name": "Mon pouls",
   "description": "Mesure indicative de la fréquence cardiaque par caméra.",
   "lang": "fr",
-  "start_url": "./",
+  "start_url": "./diagnostic.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
